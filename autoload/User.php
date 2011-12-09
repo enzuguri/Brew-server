@@ -29,7 +29,15 @@ class User {
         
         
         $user = new Axon('user');
-        $user->alias = "enzuguri";
+        
+        
+        $handle = fopen('php://input','r');
+        $jsonInput = fgets($handle);
+        $decoded = json_decode($jsonInput,true);
+        
+        
+        
+        $user->alias = $decoded["alias"];
         $user->modified = date('Y-m-d H:i:s');
         
         $user->save();
