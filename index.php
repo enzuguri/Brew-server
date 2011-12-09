@@ -2,51 +2,13 @@
 
 require __DIR__.'/lib/base.php';
 
+$db_conn = new DB('mysql:host=localhost;port=8889;dbname=brew','root','root');
+
+F3::set("DB", $db_conn);
 F3::set('CACHE',FALSE);
 F3::set('DEBUG',1);
 F3::set('UI','ui/');
-
-F3::route('GET /welcome',
-	function() {
-		F3::set('modules',
-			array(
-				'apc'=>
-					'Cache engine',
-				'gd'=>
-					'Graphics plugin',
-				'hash'=>
-					'Framework core',
-				'imap'=>
-					'Authentication',
-				'json'=>
-					'Various plugins',
-				'ldap'=>
-					'Authentication',
-				'memcache'=>
-					'Cache engine',
-				'mongo'=>
-					'M2 MongoDB mapper',
-				'pcre'=>
-					'Framework core',
-				'pdo_mssql'=>
-					'SQL handler, Axon ORM, Authentication',
-				'pdo_mysql'=>
-					'SQL handler, Axon ORM, Authentication',
-				'pdo_pgsql'=>
-					'SQL handler, Axon ORM, Authentication',
-				'pdo_sqlite'=>
-					'SQL handler, Axon ORM, Authentication',
-				'session'=>
-					'Framework core',
-				'sockets'=>
-					'Network plugin',
-				'xcache'=>
-					'Cache engine'
-			)
-		);
-		echo Template::serve('welcome.htm');
-	}
-);
+F3::set('AUTOLOAD','autoload/');
 
 F3::route("GET /", function(){
     F3::set("APP_ID", "158311827603632");
@@ -65,6 +27,12 @@ F3::route("GET /channel", function(){
  echo '<script src="//connect.facebook.net/en_US/all.js"></script>';
     
 });
+
+
+F3::map("/user/@userid", "User");
+F3::route("POST /user", "User->post");
+
+F3::map("/template/@template_name", "TemplateStore");
 
 F3::run();
 

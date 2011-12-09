@@ -1,0 +1,6 @@
+<form>
+    <label for="alias">Alias</label>
+    <input type="text" name="alias"/>
+    
+    <button type="submit" name="add">Create Account</button>
+</form>
