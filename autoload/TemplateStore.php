@@ -23,9 +23,15 @@ class TemplateStore {
         
         switch ($template_name) {
             case "newUser":
-                
                 $file = "tmpl/NewUser.html";
-
+                break;
+            
+            case "login":
+                $file = "tmpl/Login.html";
+                break;
+            
+            case "brew":
+                $file = "tmpl/Brew.html";
                 break;
 
             default:

@@ -1,41 +1,84 @@
-/* 
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
-
 //main bootstrap function
 window.bootstrap = function(){
     
-    /*
-    FB.login(function(response) {
-        if (response.authResponse) {
-            console.log('Welcome!  Fetching your information.... ');
-            FB.api('/me', function(response) {
-                console.log('Good to see you, ' + response.name + '.');
+    
+    if(window.FB == undefined){
+        
+        FB = {
+            
+            login:function(cb, opts){
                 
-            });
-        } else {
-            console.log('User cancelled login or did not fully authorize.');
+                cb({authResponse:{uid:"1234"}});
+            },
+            
+            api:function(api, cb){
+                cb({});
+            }
         }
-    }, {
-        scope: ''
+    }
+    
+    
+    
+    var FacebookController = {
+        
+        authResponse:null,
+        userResponse:null,
+        FB:FB,
+        
+        login:function(perms, cb){
+            
+            var self = this;
+            
+            this.FB.login(function(response) {
+                if (response.authResponse) {
+                    self.authResponse = response.authResponse;
+                    cb();
+                } else {
+                    self.authResponse = null;
+                }
+            }, {
+                scope: perms
+            });
+        },
+        
+        
+        getUser:function(){
+            
+            var self = this;
+            
+            this.FB.api('/me', function(response) {
+                self.userResponse = response;
+            });
+        }
+        
+    }
+    
+    var BrewModel = Backbone.Model.extend({
+       urlRoot:"brew"
     });
-    */
+    
+    
+    var BrewCollection = Backbone.Collection.extend({
+       url:"brew"
+    });
+    
+    var brews = new BrewCollection();
     
     var UserCollection = Backbone.Collection.extend({
-       url:"user" 
+       url:"user"
     });
     
+    var users = new UserCollection({});
     
     var UserModel = Backbone.Model.extend({
-       url:"user"
+       urlRoot:"user"
     });
     
     var CreateUserView = Backbone.View.extend({
         
         events:{
-            "click #create-user-submit":"onSubmit"
+            "click #create-user-submit":"onSubmit",
+            "click #create-user-facebook":"onFacebook"
         },
         
         
@@ -54,17 +97,96 @@ window.bootstrap = function(){
             
             this.model.save();
             e.preventDefault();
+        },
+        
+        onFacebook:function(e){
+            
+            var self = this;
+            
+            FacebookController.login("", function(){
+                self.updateFacebookDetails();
+            });
+        },
+        
+        updateFacebookDetails:function(){
+            
+            var fbid = FacebookController.authResponse.uid;
+            this.model.set({'fbid':fbid});
         }
         
     });
     
     var WelcomeView = Backbone.View.extend({});
     
+    var LoginView = Backbone.View.extend({
+        
+        
+        addFacebookUser:function(){
+            
+            var fbid = FacebookController.authResponse.uid;
+            var self = this;
+            
+            var opts = {
+                
+                data: JSON.stringify({"fbid":fbid}),
+                url:"login/facebook",
+                success:function(data){
+                    self.onLogin(data);
+                }
+            }
+            
+            
+            Backbone.sync("create", null, opts);
+        },
+        
+        onLogin:function(data){
+            users.add(data);
+            window.location.hash = "user/" + data.id;
+        },
+        
+        fbLogin:function(){
+            
+            console.log("fbLogin");
+            
+            var self = this;
+            
+            FacebookController.login('', function(){
+                self.addFacebookUser();
+            });
+        }
+        
+    });
     
-    var viewConfig = {
-        "newUser":CreateUserView,
-        "welcome":WelcomeView
+    
+    var UserView = Backbone.View.extend({
+        
+        
+    });
+    
+    var BrewView = Backbone.View.extend({
+        
+       
+        setModel:function(model){
+            this.model = model;
+        }
+        
+    });
+    
+    Views = {
+        NEW_USER:"newUser",
+        WELCOME:"welcome",
+        LOGIN:"login",
+        USER:"user",
+        BREW:"brew"
     }
+    
+    var viewConfig = {};
+    
+    viewConfig[Views.NEW_USER] = CreateUserView;
+    viewConfig[Views.WELCOME] = WelcomeView;
+    viewConfig[Views.LOGIN] = LoginView;
+    viewConfig[Views.USER] = UserView;
+    viewConfig[Views.BREW] = BrewView;
     
     
     var AppView = Backbone.View.extend({
@@ -75,11 +197,11 @@ window.bootstrap = function(){
        
        viewMap:viewConfig,
        
+       viewName:"",
        activeView:null,
        
        initialize:function(){
          _.bindAll(this, "render");
-         this.switchView("welcome");
        },
        
        render:function(){
@@ -89,13 +211,15 @@ window.bootstrap = function(){
        
        switchView:function(viewName){
            
+           if(this.viewName == viewName){
+               return this.activeView;
+           }
+           
+           this.viewName = viewName;
+           
            var url = "template/" + viewName;
            
            var self = this;
-           
-           if(this.activeView != null){
-               //activeView.destroy();
-           }
            
            var clz = this.viewMap[viewName];
            
@@ -106,6 +230,7 @@ window.bootstrap = function(){
                self.updateTemplate(data);
            });
            
+           return this.activeView;
        },
        
        
@@ -135,24 +260,50 @@ window.bootstrap = function(){
        
        view:app,
        
+       brews:brews,
+       
        routes:{
            "user/new":"newUser",
            "user/:id":"navigateUser",
-           "other":"other"
+           "login":"login",
+           "login/facebook":"loginFacebook",
+           "brew/new":"newBrew",
+           "brew/:id":"navigateBrew",
+           "*actions":"home"
        },
        
-       other:function(){
-         console.log("other url");  
+       home:function(){
+         this.view.switchView(Views.WELCOME);      
+       },
+       
+       login:function(){
+         this.view.switchView(Views.LOGIN);
+       },
+       
+       loginFacebook:function(){
+           this.view.switchView(Views.LOGIN).fbLogin();
        },
        
        
        navigateUser:function(id){
-         console.log("navigate");  
+         console.log("navigate "+id);
+         this.view.switchView(Views.USER);
+       },
+       
+       navigateBrew:function(id){
+          var model = new BrewModel({id:id});
+          model.fetch();
+          this.view.switchView(Views.BREW).setModel(model);
+       },
+       
+       
+       newBrew:function(){
+        this.view.switchView(Views.NEW_USER);
        },
        
        
        newUser:function(){
-        this.view.switchView("newUser");
+        this.view.switchView(Views.NEW_USER);
        }
        
         
@@ -173,5 +324,7 @@ $(function(){
     }else{
         window.onFBComplete = window.bootstrap;
     }
+   
+   window.bootstrap();
    
 });

@@ -10,6 +10,8 @@ F3::set('DEBUG',1);
 F3::set('UI','ui/');
 F3::set('AUTOLOAD','autoload/');
 
+F3::set('EXTERNS',FALSE);
+
 F3::route("GET /", function(){
     F3::set("APP_ID", "158311827603632");
     echo Template::serve("index.html");
@@ -29,8 +31,14 @@ F3::route("GET /channel", function(){
 });
 
 
-F3::map("/user/@userid", "User");
+
+F3::route("POST /login/facebook", "User->loginViaFacebook");
+F3::route("POST /login/twitter", "User->loginViaTwitter");
+
 F3::route("POST /user", "User->post");
+F3::map("/user/@userid", "User");
+
+F3::map("/brew/@brew_id", "Brew");
 
 F3::map("/template/@template_name", "TemplateStore");
 

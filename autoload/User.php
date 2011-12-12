@@ -22,7 +22,7 @@ class User {
         $user->load("id=".$id);
         
         
-        $this->json($user->cast());
+        BrewCommon::json_output($user->cast());
     }
 
     function post() {
@@ -31,10 +31,7 @@ class User {
         $user = new Axon('user');
         
         
-        $handle = fopen('php://input','r');
-        $jsonInput = fgets($handle);
-        $decoded = json_decode($jsonInput,true);
-        
+        $decoded = BrewCommon::decode_json_post();
         
         
         $user->alias = $decoded["alias"];
@@ -45,7 +42,8 @@ class User {
         
         $response = array("status" => "success");
         
-        $this->json($response); 
+        
+        BrewCommon::json_output($response);
     }
 
     function put() {
@@ -57,12 +55,26 @@ class User {
     }
     
     
-    
-    function json($data)
+    function loginViaFacebook()
     {
-        header('Content-Type: application/json;');
-        echo json_encode($data, 0);
+        $decoded = BrewCommon::decode_json_post();
+        
+        $user = new Axon('fbuserview');
+        $user->load("fbid=".$decoded["fbid"]);
+        
+        
+        BrewCommon::json_output($user->cast());
     }
+    
+    function loginViaTwitter()
+    {
+        $user = new Axon('user');
+        
+        $decoded = BrewCommon::decode_json_post();
+        
+        echo $decoded['twid'];
+    }
+    
 
 }
 
